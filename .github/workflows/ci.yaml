@@ -1,0 +1,81 @@
+# 워크플로우 이름
+name: Build and Push ETL Images
+
+# 워크플로우 실행 조건
+on:
+  push:
+    branches: [ main ] # 'main' 브랜치에 푸시될 때 실행
+    paths:
+      - 'pizza_etl/**'       # 'pizza_etl/' 폴더 내의 파일이 변경되었을 때만 실행
+
+# 워크플로우 작업 정의
+jobs:
+  build-and-push:
+    # 실행 환경
+    runs-on: ubuntu-latest
+    
+    # Matrix Strategy: 'service' 배열의 각 항목에 대해 병렬로 작업을 실행
+    strategy:
+      matrix:
+        service: [bronze, silver, gold]
+
+    # 작업 단계
+    steps:
+      # 1. 소스 코드 체크아웃
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      # 2. Google Cloud 인증
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      # 3. Docker Buildx 설정
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 4. Artifact Registry에 Docker 인증 구성
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker asia-northeast3-docker.pkg.dev --quiet
+
+      # 5. 다음 빌드를 위한 이미지 태그 생성 (상세 로깅 및 에러 핸들링 추가)
+      - name: Generate Image Tag
+        id: generate_tag
+        run: |
+          set -o pipefail
+          IMAGE_NAME="asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ay-repo/${{ matrix.service }}"
+          
+          echo "ℹ️ Getting latest tag for [${{ matrix.service }}]..."
+          LATEST_TAG=$(gcloud artifacts docker tags list "$IMAGE_NAME" \
+            --format="value(tag)" --sort-by="~tag" --limit=1) || true
+
+          if [[ -z "$LATEST_TAG" ]]; then
+            echo "⚠️ No existing tag found. Using initial version."
+            DATE=$(date +%Y%m%d)
+            SEMVER="1.0.0"
+          else
+            echo "✅ Latest tag is $LATEST_TAG"
+            DATE=$(date +%Y%m%d)
+            SEMVER=$(echo "$LATEST_TAG" | sed -E 's/^[0-9]+-//')
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$SEMVER"
+          NEXT_PATCH=$((PATCH + 1))
+          NEW_SEMVER="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+          
+          NEW_IMAGE_TAG="${DATE}-${NEW_SEMVER}"
+          echo "🆕 New image tag will be: $NEW_IMAGE_TAG"
+
+          echo "image_tag=$NEW_IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # 6. Docker 이미지 빌드 및 Artifact Registry로 푸시
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./etl
+          push: true
+          tags: asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ay-repo/${{ matrix.service }}:${{ steps.generate_tag.outputs.image_tag }}
+          target: ${{ matrix.service }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
