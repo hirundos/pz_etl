@@ -18,7 +18,8 @@ RUN mkdir -p /opt/spark/work-dir/jars \
 FROM base as bronze
 # 필요한 JAR 파일 복사
 COPY postgresql-42.2.18.jar ./jars/
-COPY gcs-connector-hadoop3-latest.jar ./jars/
+RUN curl -L https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar \
+    -o ./jars/gcs-connector-hadoop3-latest.jar
 # bronze 스크립트 복사
 COPY bronze.py ./jobs/
 # 실행 유저는 spark
@@ -33,7 +34,8 @@ FROM base as silver
 COPY requirements-silver.txt .
 RUN pip install --no-cache-dir -r requirements-silver.txt
 # 필요한 JAR 복사
-COPY gcs-connector-hadoop3-latest.jar ./jars/
+RUN curl -L https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar \
+    -o ./jars/gcs-connector-hadoop3-latest.jar
 # silver 스크립트 복사
 COPY silver.py ./applications/
 USER spark
@@ -47,8 +49,10 @@ FROM base as gold
 COPY requirements-gold.txt .
 RUN pip install --no-cache-dir -r requirements-gold.txt
 # 필요한 JAR 복사
-COPY gcs-connector-hadoop3-latest.jar ./jars/
-COPY spark-bigquery-with-dependencies_2.12-0.38.0.jar ./jars/
+RUN curl -L https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar \
+    -o ./jars/gcs-connector-hadoop3-latest.jar && \
+    curl -L https://repo1.maven.org/maven2/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/0.38.0/spark-bigquery-with-dependencies_2.12-0.38.0.jar \
+    -o ./jars/spark-bigquery-with-dependencies_2.12-0.38.0.jar
 # gold 스크립트 복사
 COPY gold.py ./applications/
 USER spark
