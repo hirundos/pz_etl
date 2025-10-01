@@ -9,7 +9,7 @@ jdbc_driver_path = "./postgresql-42.2.18.jar"
 spark = SparkSession.builder \
     .appName("Bronze_ETL") \
     .config("spark.jars", jdbc_driver_path) \
-    .config("spark.jars", "/opt/spark/jars/gcs-connector-hadoop3-2.2.11-shaded.jar") \
+    .config("spark.jars", "/opt/spark/jars/gcs-connector-hadoop3-2.2.11.jar") \
     .config("spark.hadoop.fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem") \
     .config("spark.hadoop.google.cloud.auth.service.account.enable", "true") \
     .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", "/opt/spark/secrets/gcp-key.json") \
