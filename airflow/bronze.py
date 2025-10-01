@@ -4,7 +4,7 @@ from delta.tables import DeltaTable
 import sys
 
 # --- 1. SparkSession 설정 ---
-jdbc_driver_path = "/path/to/postgresql-42.2.18.jar"
+jdbc_driver_path = "./postgresql-42.2.18.jar"
 
 spark = SparkSession.builder \
     .appName("Bronze_ETL") \

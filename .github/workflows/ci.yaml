@@ -73,7 +73,7 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ./etl
+          context: ./airflow
           push: true
           tags: asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ay-repo/${{ matrix.service }}:${{ steps.generate_tag.outputs.image_tag }}
           target: ${{ matrix.service }}

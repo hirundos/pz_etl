@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir -r requirements-silver.txt
 RUN curl -L https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar \
     -o ./jars/gcs-connector-hadoop3-latest.jar
 # silver 스크립트를 복사합니다.
-COPY silver_etl.py ./applications/
+COPY silver.py ./applications/
 USER 185
 
 # =================================================================
@@ -46,5 +46,5 @@ RUN curl -L https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-
     curl -L https://repo1.maven.org/maven2/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/0.38.0/spark-bigquery-with-dependencies_2.12-0.38.0.jar \
     -o ./jars/spark-bigquery-with-dependencies_2.12-0.38.0.jar
 # gold 스크립트를 복사합니다.
-COPY gold_etl.py ./applications/
+COPY gold.py ./applications/
 USER 185
