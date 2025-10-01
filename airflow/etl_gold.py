@@ -9,8 +9,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # --- 2. 경로 정의 (GCS) ---
-silver_path = "gs://your-bucket/silver/"
-# gold_path = "gs://your-bucket/gold/"   # BigQuery 적재라서 필요 없음
+silver_path = "gs://pz-buck-888/silver/"
 
 # --- 3. Silver 읽기 ---
 df_silver = spark.read.format("delta").load(f"{silver_path}ods_orders")

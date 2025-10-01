@@ -6,8 +6,8 @@ on:
   push:
     branches: [ main ] # 'main' 브랜치에 푸시될 때 실행
     paths:
-      - 'pizza_etl/**'       # 'pizza_etl/' 폴더 내의 파일이 변경되었을 때만 실행
-
+      - 'airflow/**'       # 'airflow/' 폴더 내의 파일이 변경되었을 때만 실행
+      - ".github/workflows/ci.yml"
 # 워크플로우 작업 정의
 jobs:
   build-and-push:

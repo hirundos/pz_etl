@@ -12,8 +12,8 @@ RUN mkdir -p /opt/spark/jars && mkdir -p /opt/spark/applications
 # =================================================================
 FROM base as bronze
 # bronze용 로컬 JAR 파일을 복사합니다.
-COPY jars/postgresql-42.2.18.jar ./jars/
-COPY jars/gcs-connector-hadoop3-2.2.11-shaded.jar ./jars/
+COPY postgresql-42.2.18.jar ./jars/
+COPY gcs-connector-hadoop3-2.2.11.jar ./jars/
 # bronze 스크립트를 기존 Dockerfile과 동일한 경로에 복사합니다.
 COPY bronze.py ./jobs/
 # 컨테이너 실행 유저를 non-root로 변경합니다.

@@ -8,8 +8,8 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # GCS 경로로 수정
-bronze_path = "gs://your-bucket/bronze/"
-silver_path = "gs://your-bucket/silver/"
+bronze_path = "gs://pz-buck-888/bronze/"
+silver_path = "gs://pz-buck-888/silver/"
 
 # 예시: 주문 중심 Silver 테이블
 df_orders = spark.read.format("delta").load(f"{bronze_path}orders")

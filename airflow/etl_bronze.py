@@ -18,11 +18,11 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # --- 2. 경로 및 RDB 정보 ---
-bronze_path = "gs://your-bucket/delta/bronze/"
-watermark_path = "gs://your-bucket/delta/watermarks/"
+bronze_path = "gs://pz-buck-888/bronze/"
+watermark_path = "gs://pz-buck-888/watermarks/"
 
-jdbc_url = "jdbc:postgresql://localhost:5432/postgres"
-jdbc_props = {"user": "postgres", "password": "1234", "driver": "org.postgresql.Driver"}
+jdbc_url = "jdbc:postgresql://localhost:5432/pizza"
+jdbc_props = {"user": "pg_user", "password": "1234", "driver": "org.postgresql.Driver"}
 
 tables = ["branch", "member", "orders", "order_detail", "pizza", "pizza_types", "pizza_type_topping", "topping"]
 
