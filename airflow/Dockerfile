@@ -7,7 +7,9 @@ USER root
 WORKDIR /opt/spark/work-dir
 
 # jars, applications, jobs 디렉토리 생성
-RUN mkdir -p /opt/spark/work-dir/jars \
+RUN apt-get update && apt-get install -y python3 python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /opt/spark/work-dir/jars \
     && mkdir -p /opt/spark/work-dir/applications \
     && mkdir -p /opt/spark/work-dir/jobs
 

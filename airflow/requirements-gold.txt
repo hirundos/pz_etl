@@ -1,3 +1,2 @@
 delta-spark==3.2.0
 google-cloud-storage
-pyspark[gcp]

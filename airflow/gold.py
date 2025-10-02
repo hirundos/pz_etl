@@ -18,21 +18,21 @@ df_silver = spark.read.format("delta").load(f"{silver_path}ods_orders")
 # dim_pizza
 df_dim_pizza = df_silver.select("pizza_id", "pizza_type_id", "size", "price").distinct()
 df_dim_pizza.write.format("bigquery") \
-    .option("table", "your_project.your_dataset.dim_pizza") \
+    .option("table", "pz-project-473804.pz-storg.dim_pizza") \
     .mode("overwrite") \
     .save()
 
 # dim_member
 df_dim_member = df_silver.select("member_id", "member_nm").distinct()
 df_dim_member.write.format("bigquery") \
-    .option("table", "your_project.your_dataset.dim_member") \
+    .option("table", "pz-project-473804.pz-storg.dim_member") \
     .mode("overwrite") \
     .save()
 
 # dim_pizza_type
 df_dim_ptype = df_silver.select("pizza_type_id", "pizza_nm", "pizza_categ").distinct()
 df_dim_ptype.write.format("bigquery") \
-    .option("table", "your_project.your_dataset.dim_pizza_type") \
+    .option("table", "pz-project-473804.pz-storg.dim_pizza_type") \
     .mode("overwrite") \
     .save()
 
@@ -46,7 +46,7 @@ df_dim_date = df_silver.select(to_date("date").alias("date")) \
     .withColumn("is_weekend", expr("CASE WHEN dayofweek(date) IN (1,7) THEN 1 ELSE 0 END"))
 
 df_dim_date.write.format("bigquery") \
-    .option("table", "your_project.your_dataset.dim_date") \
+    .option("table", "pz-project-473804.pz-storg.dim_date") \
     .mode("overwrite") \
     .save()
 
@@ -58,7 +58,7 @@ df_fact_order = df_silver.select(
  .withColumn("total_price", expr("unit_price * quantity"))
 
 df_fact_order.write.format("bigquery") \
-    .option("table", "your_project.your_dataset.fact_order") \
+    .option("table", "pz-project-473804.pz-storg.fact_order") \
     .mode("overwrite") \
     .save()
 
