@@ -10,9 +10,7 @@ WORKDIR /opt/spark/work-dir
 RUN apt-get update && apt-get install -y python3 python3-pip \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /opt/spark/work-dir/jars \
-    && mkdir -p /opt/spark/work-dir/applications \
-    && mkdir -p /opt/spark/work-dir/jobs
-
+    && mkdir -p /opt/spark/work-dir/applications
 
 # =================================================================
 # Bronze Stage - 'bronze' 이미지 빌드
@@ -23,7 +21,7 @@ COPY postgresql-42.2.18.jar ./jars/
 RUN curl -L https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar \
     -o ./jars/gcs-connector-hadoop3-latest.jar
 # bronze 스크립트 복사
-COPY bronze.py ./jobs/
+COPY bronze.py ./applications/
 # 실행 유저는 spark
 USER spark
 
