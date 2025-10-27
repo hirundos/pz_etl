@@ -58,8 +58,9 @@ jobs:
           NEW_SEMVER="${MAJOR}.${MINOR}.${NEXT_PATCH}"
           
           NEW_IMAGE_TAG="${DATE}-${NEW_SEMVER}"
-          echo "🆕 New image tag will be: $NEW_IMAGE_TAG"
+          echo "New image tag will be: $NEW_IMAGE_TAG"
           echo "image_tag=$NEW_IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "image_repository=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
       # 6. Docker 이미지 빌드 및 Artifact Registry로 푸시
       - name: Build and Push Docker Image
@@ -67,6 +68,6 @@ jobs:
         with:
           context: ./airflow
           push: true
-          tags: asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ay-repo/${IMAGE_BASENAME}:${{ steps.generate_tag.outputs.image_tag }}
+          tags: ${{ steps.generate_tag.outputs.image_repository }}:${{ steps.generate_tag.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
