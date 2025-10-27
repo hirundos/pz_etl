@@ -23,8 +23,14 @@ spark = SparkSession.builder \
 bronze_path = "gs://pz-buck-888/bronze/"
 watermark_path = "gs://pz-buck-888/watermarks/"
 
-jdbc_url = "jdbc:postgresql://localhost:5432/pizza"
-jdbc_props = {"user": "pg_user", "password": "1234", "driver": "org.postgresql.Driver"}
+db_host = os.getenv("DB_HOST", "")
+db_port = os.getenv("DB_PORT", "")
+db_name = os.getenv("DB_NAME", "")
+db_pw = os.getenv("DB_PW", "")
+db_user = os.getenv("DB_USER", "")
+
+jdbc_url = f"jdbc:postgresql://{db_host}:{db_port}/{db_name}"
+jdbc_props = {"user": db_user, "password": db_pw, "driver": "org.postgresql.Driver"}
 
 tables = ["branch", "member", "orders", "order_detail", "pizza", "pizza_types", "pizza_type_topping", "topping"]
 
