@@ -1,4 +1,4 @@
-from pyspark.sql.functions import col, count, countDistinct, F
+from pyspark.sql.functions import col, count, countDistinct
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +30,7 @@ def _check_nulls(df, col_name):
 
 def _check_referential_integrity(fact_df, fact_key, dim_df, dim_key, dim_name):
     orphan_count = fact_df.alias("f") \
-        .join(dim_df.alias("d"), F.col(f"f.{fact_key}") == F.col(f"d.{dim_key}"), "left_anti") \
+        .join(dim_df.alias("d"), col(f"f.{fact_key}") == col(f"d.{dim_key}"), "left_anti") \
         .count()
     run_validation_check(
         f"Referential Integrity (fact -> {dim_name})",

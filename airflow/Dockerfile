@@ -12,51 +12,21 @@ RUN apt-get update && apt-get install -y python3 python3-pip \
     && mkdir -p /opt/spark/work-dir/jars \
     && mkdir -p /opt/spark/work-dir/applications
 
-# =================================================================
-# Bronze Stage - 'bronze' 이미지 빌드
-# =================================================================
-FROM base as bronze
-# 필요한 JAR 파일 복사
 COPY postgresql-42.2.18.jar ./jars/
 RUN curl -L https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar \
-    -o ./jars/gcs-connector-hadoop3-latest.jar
-# bronze 스크립트 복사
-COPY bronze.py bronze_validator.py ./applications/
-# 실행 유저는 spark
-USER spark
-
-
-# =================================================================
-# Silver Stage - 'silver' 이미지 빌드
-# =================================================================
-FROM base as silver
-# Python 의존성 설치 (root 권한에서 실행)
-COPY requirements-silver.txt .
-RUN pip install --no-cache-dir -r requirements-silver.txt
-# 필요한 JAR 복사
-RUN curl -L https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar \
-    -o ./jars/gcs-connector-hadoop3-latest.jar && \
+    -o ./jars/gcs-connector-hadoop3-latest.jar  && \
     curl -L https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.1/delta-spark_2.12-3.2.1.jar \
-    -o ./jars/delta-spark_2.12-3.2.1.jar
-# silver 스크립트 복사
-COPY silver.py silver_validator.py ./applications/
-USER spark
-
-
-# =================================================================
-# Gold Stage - 'gold' 이미지 빌드
-# =================================================================
-FROM base as gold
-# Python 의존성 설치 (root 권한에서 실행)
-COPY requirements-gold.txt .
-RUN pip install --no-cache-dir -r requirements-gold.txt
-# 필요한 JAR 복사
-RUN curl -L https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar \
-    -o ./jars/gcs-connector-hadoop3-latest.jar && \
+    -o ./jars/delta-spark_2.12-3.2.1.jar && \
+    curl -L https://repo1.maven.org/maven2/io/delta/delta-storage/3.2.1/delta-storage-3.2.1.jar \
+    -o ./jars/delta-storage-3.2.1.jar && \
     curl -L https://repo1.maven.org/maven2/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/0.38.0/spark-bigquery-with-dependencies_2.12-0.38.0.jar \
-    -o ./jars/spark-bigquery-with-dependencies_2.12-0.38.0.jar && \
-    curl -L https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.1/delta-spark_2.12-3.2.1.jar \
-    -o ./jars/delta-spark_2.12-3.2.1.jar
-# gold 스크립트 복사
+    -o ./jars/spark-bigquery-with-dependencies_2.12-0.38.0.jar
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY bronze.py bronze_validator.py ./applications/
+COPY silver.py silver_validator.py ./applications/
 COPY gold.py gold_validator.py ./applications/
-USER spark
+
+USER spark    
