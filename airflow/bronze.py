@@ -4,6 +4,7 @@ from delta.tables import DeltaTable
 import sys
 from bronze_validator import validate_dataframe
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -12,11 +13,6 @@ jdbc_driver_path = "./postgresql-42.2.18.jar"
 
 spark = SparkSession.builder \
     .appName("Bronze_ETL") \
-    .config("spark.hadoop.fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem") \
-    .config("spark.hadoop.google.cloud.auth.service.account.enable", "true") \
-    .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", "/opt/spark/secrets/gcp-key.json") \
-    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
-    .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
     .getOrCreate()
 
 # 경로 및 RDB 정보
