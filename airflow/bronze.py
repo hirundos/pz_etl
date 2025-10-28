@@ -10,10 +10,10 @@ TABLE_KEYS = {
     "branch": ["bran_id"],
     "member": ["member_id"],
     "orders": ["order_id"],
-    "order_detail": ["order_detail_id"],
+    "orderdetail": ["order_detail_id"],
     "pizza": ["pizza_id"],
-    "pizza_types": ["pizza_type_id"],
-    "pizza_type_topping": ["pizza_type_id", "pizza_topping_id"], 
+    "pizzatypes": ["pizza_type_id"],
+    "pizzatypetopping": ["pizza_type_id", "pizza_topping_id"], 
     "topping": ["pizza_topping_id"]
 }
 
@@ -37,7 +37,7 @@ db_user = os.getenv("DB_USER", "")
 jdbc_url = f"jdbc:postgresql://{db_host}:{db_port}/{db_name}"
 jdbc_props = {"user": db_user, "password": db_pw, "driver": "org.postgresql.Driver"}
 
-tables = ["branch", "member", "orders", "order_detail", "pizza", "pizza_types", "pizza_type_topping", "topping"]
+tables = ["branch", "member", "orders", "orderdetail", "pizza", "pizzatypes", "pizzatypetopping", "topping"]
 
 for table in tables:
     default_timestamp_for_null = '1900-01-01 00:00:01' 

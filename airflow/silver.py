@@ -20,13 +20,13 @@ silver_path = "gs://pz-buck-888/silver/"
 
 try:
     df_orders = spark.read.format("delta").load(f"{bronze_path}orders")
-    df_order_detail = spark.read.format("delta").load(f"{bronze_path}order_detail")
+    df_order_detail = spark.read.format("delta").load(f"{bronze_path}orderdetail")
     df_pizza = spark.read.format("delta").load(f"{bronze_path}pizza")
-    df_pizza_type = spark.read.format("delta").load(f"{bronze_path}pizza_types")
+    df_pizza_type = spark.read.format("delta").load(f"{bronze_path}pizzatypes")
     df_member = spark.read.format("delta").load(f"{bronze_path}member")
     df_branch = spark.read.format("delta").load(f"{bronze_path}branch")
     df_pizza_topping = spark.read.format("delta").load(f"{bronze_path}topping")
-    df_bridge = spark.read.format("delta").load(f"{bronze_path}pizza_type_topping")
+    df_bridge = spark.read.format("delta").load(f"{bronze_path}pizzatypetopping")
     logger.info("모든 Bronze 테이블 로드 성공")
 except Exception as e:
     logger.error(f"ERROR: Bronze 테이블 로드 실패: {e}")
@@ -39,11 +39,13 @@ validation_results = {}
 # Primary Key (PK) 중복 검사
 dim_tables_to_check = {
     "orders": (df_orders, "order_id"),
+    "orderdetail": (df_order_detail, "order_detail_id"),
     "pizza": (df_pizza, "pizza_id"),
-    "pizza_types": (df_pizza_type, "pizza_type_id"),
+    "pizzatypes": (df_pizza_type, "pizza_type_id"),
     "member": (df_member, "member_id"),
     "branch": (df_branch, "bran_id"),
     "topping": (df_pizza_topping, "pizza_topping_id"),
+    "pizzatypetopping": (df_bridge, ["pizza_type_id", "pizza_topping_id"])
 }
 
 validation_results["duplicate_primary_keys"] = check_duplicate_pks(dim_tables_to_check)

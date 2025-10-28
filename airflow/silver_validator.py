@@ -62,17 +62,17 @@ def check_referential_integrity(df_silver):
         col("orders.bran_id").isNotNull() & col("branch.bran_nm").isNull()
     ).count()
 
-    # bridge 테이블에는 topping_id가 있으나, topping 테이블에 없는 경우
+    # pizzatypetopping 테이블에는 topping_id가 있으나, topping 테이블에 없는 경우
     missing_joins["missing_topping_master"] = df_silver.filter(
-        col("bridge.pizza_topping_id").isNotNull() &
+        col("pizzatypetopping.pizza_topping_id").isNotNull() &
         col("topping.pizza_topping_nm").isNull()
     ).count()
 
     # 토핑 정보가 아예 없는 피자
     missing_joins["pizzas_with_no_toppings (distinct_type)"] = df_silver.filter(
-        col("pizza_type.pizza_type_id").isNotNull() &
-        col("bridge.pizza_type_id").isNull()
-    ).select("pizza_type.pizza_type_id").distinct().count()
+        col("pizzatype.pizza_type_id").isNotNull() &
+        col("pizzatypetopping.pizza_type_id").isNull()
+    ).select("pizzatype.pizza_type_id").distinct().count()
 
     logger.info(f"    [정보] 'Left Join' 실패 (참조 데이터 누락) 건수: {missing_joins}")
     logger.info("  [검증 4-2] 완료")
