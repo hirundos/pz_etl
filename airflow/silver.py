@@ -2,8 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, countDistinct, when
 from delta.tables import DeltaTable
 import json
-# 수정된 final validator 임포트
-from silver_validator_final import check_duplicate_pks, check_null_fks, check_cardinality, check_referential_integrity
+from silver_validator import check_duplicate_pks, check_null_fks, check_cardinality, check_referential_integrity
 import logging
 
 logging.basicConfig(level=logging.INFO)
