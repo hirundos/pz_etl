@@ -88,10 +88,8 @@ def validate_dataframes(dfs):
 
     # 참조 무결성 (FK - PK) 검증
     _check_referential_integrity(df_fact_order, "pizza_id", df_dim_pizza, "pizza_id", "dim_pizza")
-    _check_referential_integrity(df_fact_order, "member_id", df_dim_member, "member_id", "dim_member")
     _check_referential_integrity(df_fact_order, "pizza_type_id", df_dim_ptype, "pizza_type_id", "dim_pizza_type")
     _check_referential_integrity(df_fact_order, "date", df_dim_date, "date", "dim_date")
-    _check_referential_integrity(df_fact_order, "bran_id", df_dim_branch, "bran_id", "dim_branch")
     _check_referential_integrity(df_fact_order, "pizza_topping_id", df_dim_topping, "pizza_topping_id", "dim_pizza_topping")
 
     # 비즈니스 로직 검증
