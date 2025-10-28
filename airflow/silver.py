@@ -2,7 +2,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, countDistinct, when
 from delta.tables import DeltaTable
 import json
-from silver_validator import check_duplicate_pks, check_null_fks, check_cardinality, check_referential_integrity
+# 수정된 final validator 임포트
+from silver_validator_final import check_duplicate_pks, check_null_fks, check_cardinality, check_referential_integrity
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -14,20 +15,27 @@ spark = SparkSession.builder \
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
     .getOrCreate()
 
+# GCS 경로
 bronze_path = "gs://pz-buck-888/bronze/"
 silver_path = "gs://pz-buck-888/silver/"
 
+# [수정] 중복을 피하기 위해 조인 전에 삭제할 공통 컬럼 목록
+common_cols_to_drop = ["last_updated_timestamp", "etl_load_timestamp"]
+
 try:
-    od = spark.read.format("delta").load(f"{bronze_path}orderdetail").alias("orderdetail")
-    o = spark.read.format("delta").load(f"{bronze_path}orders").alias("orders")
-    p = spark.read.format("delta").load(f"{bronze_path}pizza").alias("pizza")
-    pt = spark.read.format("delta").load(f"{bronze_path}pizzatypes").alias("pizzatypes")
-    m = spark.read.format("delta").load(f"{bronze_path}member").alias("member")
-    b = spark.read.format("delta").load(f"{bronze_path}branch").alias("branch")
-    t = spark.read.format("delta").load(f"{bronze_path}topping").alias("topping")
-    br = spark.read.format("delta").load(f"{bronze_path}pizzatypetopping").alias("pizzatypetopping")
+    # [수정] alias 제거. orderdetail을 기준으로 삼음.
+    df_order_detail = spark.read.format("delta").load(f"{bronze_path}orderdetail")
+
+    # [수정] 조인할 테이블들은 공통 컬럼을 미리 drop() 합니다.
+    df_orders = spark.read.format("delta").load(f"{bronze_path}orders").drop(*common_cols_to_drop)
+    df_pizza = spark.read.format("delta").load(f"{bronze_path}pizza").drop(*common_cols_to_drop)
+    df_pizza_type = spark.read.format("delta").load(f"{bronze_path}pizzatypes").drop(*common_cols_to_drop)
+    df_member = spark.read.format("delta").load(f"{bronze_path}member").drop(*common_cols_to_drop)
+    df_branch = spark.read.format("delta").load(f"{bronze_path}branch").drop(*common_cols_to_drop)
+    df_pizza_topping = spark.read.format("delta").load(f"{bronze_path}topping").drop(*common_cols_to_drop)
+    df_bridge = spark.read.format("delta").load(f"{bronze_path}pizzatypetopping").drop(*common_cols_to_drop)
     
-    logger.info("모든 Bronze 테이블 로드 및 별칭 설정 성공")
+    logger.info("모든 Bronze 테이블 로드 성공 (공통 컬럼 드랍 처리)")
 except Exception as e:
     logger.error(f"ERROR: Bronze 테이블 로드 실패: {e}", exc_info=True)
     spark.stop()
@@ -38,33 +46,34 @@ validation_results = {}
 
 # Primary Key (PK) 중복 검사
 dim_tables_to_check = {
-    "orders": (o, "order_id"),
-    "orderdetail": (od, "order_detail_id"),
-    "pizza": (p, "pizza_id"),
-    "pizzatypes": (pt, "pizza_type_id"),
-    "member": (m, "member_id"),
-    "branch": (b, "bran_id"),
-    "topping": (t, "pizza_topping_id"),
-    "pizzatypetopping": (br, ["pizza_type_id", "pizza_topping_id"])
+    "orders": (df_orders, "order_id"),
+    "orderdetail": (df_order_detail, "order_detail_id"),
+    "pizza": (df_pizza, "pizza_id"),
+    "pizzatypes": (df_pizza_type, "pizza_type_id"),
+    "member": (df_member, "member_id"),
+    "branch": (df_branch, "bran_id"),
+    "topping": (df_pizza_topping, "pizza_topping_id"),
+    "pizzatypetopping": (df_bridge, ["pizza_type_id", "pizza_topping_id"])
 }
 
 validation_results["duplicate_primary_keys"] = check_duplicate_pks(dim_tables_to_check)
 
 # Foreign Key (FK) Null 값 검사
-validation_results["null_foreign_keys"] = check_null_fks(od, o, p)
+validation_results["null_foreign_keys"] = check_null_fks(df_order_detail, df_orders, df_pizza)
 
 logger.info("--- 조인 전 검증 완료 ---")
 
 logger.info("--- Silver ETL (Join) 로직 시작 ---")
+
 try:
-    df_silver = od \
-        .join(o, od.order_id == o.order_id, "inner") \
-        .join(p, od.pizza_id == p.pizza_id, "inner") \
-        .join(pt, p.pizza_type_id == pt.pizza_type_id, "inner") \
-        .join(m, o.member_id == m.member_id, "left") \
-        .join(b, o.bran_id == b.bran_id, "left") \
-        .join(br, pt.pizza_type_id == br.pizza_type_id, "left") \
-        .join(t, br.pizza_topping_id == t.pizza_topping_id, "left")
+    df_silver = df_order_detail \
+        .join(df_orders, "order_id", "inner") \
+        .join(df_pizza, "pizza_id", "inner") \
+        .join(df_pizza_type, "pizza_type_id", "inner") \
+        .join(df_member, "member_id", "left") \
+        .join(df_branch, "bran_id", "left") \
+        .join(df_bridge, "pizza_type_id", "left") \
+        .join(df_pizza_topping, "pizza_topping_id", "left")
     
     logger.info("--- Silver ETL (Join) 로직 완료 ---")
 except Exception as e:
@@ -76,7 +85,7 @@ df_silver.cache()
 
 logger.info("--- 조인 후 검증 시작 ---")
 
-validation_results["row_count_check"] = check_cardinality(od, df_silver)
+validation_results["row_count_check"] = check_cardinality(df_order_detail, df_silver)
 validation_results["missing_join_references"] = check_referential_integrity(df_silver)
 
 logger.info("--- 조인 후 검증 완료 ---")

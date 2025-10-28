@@ -36,7 +36,7 @@ def check_cardinality(df_bronze_order_detail, df_silver):
     logger.info("  [검증 4-1] Cardinality (행 개수) 검증 시작")
     count_bronze_order_detail = df_bronze_order_detail.count()
     
-    count_silver_distinct_order_detail = df_silver.select(countDistinct(col("orderdetail.order_detail_id"))).collect()[0][0]
+    count_silver_distinct_order_detail = df_silver.select(countDistinct(col("order_detail_id"))).collect()[0][0]
 
     results = {
         "bronze_order_detail_count": count_bronze_order_detail,
@@ -58,27 +58,25 @@ def check_referential_integrity(df_silver):
     missing_joins = {}
 
     try:
-        # member_id는 있으나, member 테이블에 없는 경우
+        # member_id는 있으나 (from orders), member_nm이 없는 경우 (from member)
         missing_joins["missing_member"] = df_silver.filter(
-            col("orders.member_id").isNotNull() & col("member.member_nm").isNull()
+            col("member_id").isNotNull() & col("member_nm").isNull()
         ).count()
 
-        # bran_id는 있으나, branch 테이블에 없는 경우
+        # bran_id는 있으나 (from orders), bran_nm이 없는 경우 (from branch)
         missing_joins["missing_branch"] = df_silver.filter(
-            col("orders.bran_id").isNotNull() & col("branch.bran_nm").isNull()
+            col("bran_id").isNotNull() & col("bran_nm").isNull()
         ).count()
 
-        # pizzatypetopping 테이블에는 topping_id가 있으나, topping 테이블에 없는 경우
+        # pizza_topping_id는 있으나 (from bridge), pizza_topping_nm이 없는 경우
         missing_joins["missing_topping_master"] = df_silver.filter(
-            col("pizzatypetopping.pizza_topping_id").isNotNull() &
-            col("topping.pizza_topping_nm").isNull()
+            col("pizza_topping_id").isNotNull() & col("pizza_topping_nm").isNull()
         ).count()
 
         # 토핑 정보가 아예 없는 피자
         missing_joins["pizzas_with_no_toppings (distinct_type)"] = df_silver.filter(
-            col("pizzatypes.pizza_type_id").isNotNull() &
-            col("pizzatypetopping.pizza_type_id").isNull()
-        ).select(col("pizzatypes.pizza_type_id")).distinct().count()
+            col("pizza_topping_id").isNull()
+        ).select(col("pizza_type_id")).distinct().count()
 
         logger.info(f"    [정보] 'Left Join' 실패 (참조 데이터 누락) 건수: {missing_joins}")
         logger.info("  [검증 4-2] 완료")
