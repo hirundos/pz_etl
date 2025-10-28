@@ -1,15 +1,24 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, current_timestamp, max
+from pyspark.sql.functions import col, current_timestamp, max, coalesce, lit
 from delta.tables import DeltaTable
 import sys
 from bronze_validator import validate_dataframe
 import logging
 import os
 
+TABLE_KEYS = {
+    "branch": ["bran_id"],
+    "member": ["member_id"],
+    "orders": ["order_id"],
+    "order_detail": ["order_detail_id"],
+    "pizza": ["pizza_id"],
+    "pizza_types": ["pizza_type_id"],
+    "pizza_type_topping": ["pizza_type_id", "pizza_topping_id"], 
+    "topping": ["pizza_topping_id"]
+}
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-jdbc_driver_path = "./postgresql-42.2.18.jar"
 
 spark = SparkSession.builder \
     .appName("Bronze_ETL") \
@@ -31,14 +40,20 @@ jdbc_props = {"user": db_user, "password": db_pw, "driver": "org.postgresql.Driv
 tables = ["branch", "member", "orders", "order_detail", "pizza", "pizza_types", "pizza_type_topping", "topping"]
 
 for table in tables:
+    default_timestamp_for_null = '1900-01-01 00:00:01' 
+
     try:
         df_wm = spark.read.format("delta").load(f"{watermark_path}{table}")
         wm_row = df_wm.collect()
         last_watermark = wm_row[0]["watermark_value"] if wm_row else "1900-01-01 00:00:00"
-    except:
+
+        if last_watermark is None:
+            last_watermark = "1900-01-01 00:00:00"
+    except Exception as e:
+        logger.info(f"Watermark not found for {table} or other error: {e}. Defaulting to initial watermark.")
         last_watermark = "1900-01-01 00:00:00"
 
-    query = f"(SELECT * FROM {table} WHERE last_updated_timestamp > '{last_watermark}') AS tmp"
+    query = f"(SELECT * FROM {table} WHERE COALESCE(last_updated_timestamp, '{default_timestamp_for_null}') > '{last_watermark}') AS tmp"
     df_new = spark.read.jdbc(url=jdbc_url, table=query, properties=jdbc_props)
 
     if df_new.isEmpty():
@@ -57,18 +72,30 @@ for table in tables:
     bronze_table_path = f"{bronze_path}{table}"
     if not DeltaTable.isDeltaTable(spark, bronze_table_path):
         df_new.write.format("delta").mode("overwrite").save(bronze_table_path)
-        delta_table = DeltaTable.forPath(spark, bronze_table_path)
     else:
         delta_table = DeltaTable.forPath(spark, bronze_table_path)
+
         delta_table.alias("target") \
-            .merge(df_new.alias("source"), f"target.{table}_id = source.{table}_id") \
+            .merge(df_new.alias("source"), f"target.{TABLE_KEYS[table][0]} = source.{TABLE_KEYS[table][0]}") \
             .whenMatchedUpdateAll() \
             .whenNotMatchedInsertAll() \
             .execute()
 
     # 워터마크 업데이트
-    new_wm = df_new.select(max("last_updated_timestamp")).collect()[0][0]
-    spark.createDataFrame([(table, new_wm)], ["table_name", "watermark_value"]) \
+    new_wm_df = df_new.select(
+        max(
+            coalesce(col("last_updated_timestamp"), lit(default_timestamp_for_null))
+        ).alias("new_watermark")
+    )
+    new_wm = new_wm_df.collect()[0]["new_watermark"]
+
+    if new_wm is not None and new_wm > last_watermark:
+        new_watermark_to_write = new_wm
+    else:
+        new_watermark_to_write = last_watermark
+
+    spark.createDataFrame([(table, new_watermark_to_write)], ["table_name", "watermark_value"]) \
         .write.format("delta").mode("overwrite").save(f"{watermark_path}{table}")
 
+    logger.info(f"Successfully processed {table}. New watermark: {new_watermark_to_write}")
 spark.stop()

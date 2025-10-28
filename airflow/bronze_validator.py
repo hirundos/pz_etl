@@ -33,6 +33,17 @@ def check_null_keys(df, key_cols):
             errors.append(f"{key_col} has {null_count} null or NaN values.")
     return " | ".join(errors) if errors else None
 
+# Timestamp 검증
+def check_timestamp(df):
+    if "last_updated_timestamp" not in df.columns:
+        return None
+    invalid_ts = df.filter(
+        (col("last_updated_timestamp") < lit("1900-01-01")) |
+        (col("last_updated_timestamp") > current_timestamp())
+    ).count()
+    if invalid_ts > 0:
+        return f"{invalid_ts} invalid timestamps detected."
+    return None
 
 # 중복 키 검증
 def check_duplicates(df, key_cols):
@@ -53,6 +64,7 @@ def validate_dataframe(df, table_name):
         check_row_count,
         lambda df: check_null_keys(df, key_cols),
         lambda df: check_duplicates(df, key_cols),
+        check_timestamp
     ]:
         err = check_fn(df)
         if err:

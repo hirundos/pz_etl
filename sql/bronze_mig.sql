@@ -9,9 +9,9 @@ INSERT INTO stg.branch SELECT * FROM public.branch; -- ​데이터 복사(원�
 CREATE TABLE stg."member" (LIKE public."member" INCLUDING ALL); 
 INSERT INTO stg."member" SELECT * FROM public."member"; 
 
--- orderdetail 테이블 구조 복제 및 데이터 복사
-CREATE TABLE stg.orderdetail (LIKE public.order_detail INCLUDING ALL); 
-INSERT INTO stg.orderdetail SELECT * FROM public.order_detail; 
+-- order_detail 테이블 구조 복제 및 데이터 복사
+CREATE TABLE stg.order_detail (LIKE public.order_detail INCLUDING ALL); 
+INSERT INTO stg.order_detail SELECT * FROM public.order_detail; 
 
 -- orders 테이블 구조 복제 및 데이터 복사
 CREATE TABLE stg.orders (LIKE public.orders INCLUDING ALL); 
@@ -21,13 +21,13 @@ INSERT INTO stg.orders SELECT * FROM public.orders;
 CREATE TABLE stg.pizza (LIKE public.pizza INCLUDING ALL); 
 INSERT INTO stg.pizza SELECT * FROM public.pizza; 
 
--- pizzatypes 테이블 구조 복제 및 데이터 복사
-CREATE TABLE stg.pizzatypes (LIKE public.pizza_types INCLUDING ALL); 
-INSERT INTO stg.pizzatypes SELECT * FROM public.pizza_types;
+-- pizza_types 테이블 구조 복제 및 데이터 복사
+CREATE TABLE stg.pizza_types (LIKE public.pizza_types INCLUDING ALL); 
+INSERT INTO stg.pizza_types SELECT * FROM public.pizza_types;
 
--- pizzatypetopping 테이블 구조 복제 및 데이터 복사
-CREATE TABLE stg.pizzatypetopping (LIKE public.pizza_type_topping INCLUDING ALL);
-INSERT INTO stg.pizzatypetopping SELECT * FROM public.pizza_type_topping; 
+-- pizza_type_topping 테이블 구조 복제 및 데이터 복사
+CREATE TABLE stg.pizza_type_topping (LIKE public.pizza_type_topping INCLUDING ALL);
+INSERT INTO stg.pizza_type_topping SELECT * FROM public.pizza_type_topping; 
 
 -- topping 테이블 구조 복제 및 데이터 복사
 CREATE TABLE stg.topping (LIKE public.topping INCLUDING ALL);
