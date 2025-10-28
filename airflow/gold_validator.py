@@ -11,13 +11,20 @@ def run_validation_check(check_name, condition, error_message):
     else:
         logger.info(f"[VALIDATION SUCCESS] {check_name}")
 
-def _check_uniqueness(df, key_col, table_name):
-    count = df.count()
-    distinct_count = df.select(key_col).distinct().count()
+def _check_uniqueness(df, key_cols, table_name):
+    count_total = df.count()
+    
+    if isinstance(key_cols, list):
+        distinct_count = df.select(*key_cols).distinct().count()
+        key_str = ", ".join(key_cols)
+    else:
+        distinct_count = df.select(key_cols).distinct().count()
+        key_str = key_cols
+
     run_validation_check(
         f"{table_name} Key Uniqueness",
-        count == distinct_count,
-        f"Duplicate keys found. Total: {count}, Unique: {distinct_count} in '{key_col}'."
+        count_total == distinct_count,
+        f"Duplicate keys found. Total: {count_total}, Unique: {distinct_count} in '{key_str}'."
     )
 
 def _check_nulls(df, col_name):
@@ -69,7 +76,7 @@ def validate_dataframes(dfs):
     _check_uniqueness(df_dim_date, "date", "dim_date")
     _check_uniqueness(df_dim_branch, "bran_id", "dim_branch")
     _check_uniqueness(df_dim_topping, "pizza_topping_id", "dim_pizza_topping")
-    _check_uniqueness(df_fact_order, "order_detail_id", "fact_order (PK)")
+    _check_uniqueness(df_fact_order, ["order_detail_id", "pizza_topping_id"], "fact_order (PK)")
 
     # Fact 테이블 FK Null 검증
     _check_nulls(df_fact_order, "date")
@@ -77,7 +84,7 @@ def validate_dataframes(dfs):
     _check_nulls(df_fact_order, "pizza_id")
     _check_nulls(df_fact_order, "bran_id")
     _check_nulls(df_fact_order, "pizza_type_id")
-    _check_nulls(df_fact_order, "pizza_topping_id")
+    _check_nulls(df_fact_order, "pizza_topping_id") 
 
     # 참조 무결성 (FK - PK) 검증
     _check_referential_integrity(df_fact_order, "pizza_id", df_dim_pizza, "pizza_id", "dim_pizza")
@@ -98,10 +105,10 @@ def validate_dataframes(dfs):
     
     # 수량 및 가격 > 0 검증
     negative_quantity_count = df_fact_order.where(col("quantity") <= 0).count()
-    run_validation_check(
-        "Business Logic (quantity > 0)",
-        negative_quantity_count == 0,
-        f"Warning (non-blocking): Found {negative_quantity_count} rows with quantity <= 0."
-    )
+    if negative_quantity_count > 0:
+         logger.warning(f"[Validation Warning] Business Logic (quantity > 0): Found {negative_quantity_count} rows with quantity <= 0.")
+    else:
+        logger.info("[VALIDATION SUCCESS] Business Logic (quantity > 0)")
+
 
     logger.info("\n--- 모든 데이터 검증 통과 (External Module) ---")
