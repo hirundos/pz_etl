@@ -8,7 +8,11 @@ def check_duplicate_pks(dim_tables_to_check):
     logger.info("  [검증 2-1]  테이블 PK 중복 검사 시작")
     duplicate_keys = {}
     for name, (df, key) in dim_tables_to_check.items():
-        dup_count = df.groupBy(key).count().filter(col("count") > 1).count()
+        if isinstance(key, list):
+            dup_count = df.groupBy(*key).count().filter(col("count") > 1).count()
+        else:
+            dup_count = df.groupBy(key).count().filter(col("count") > 1).count()
+            
         if dup_count > 0:
             logger.warning(f"[경고] {name} 테이블에 중복 {key}가 {dup_count}건 존재합니다.")
         duplicate_keys[name] = dup_count
@@ -29,9 +33,10 @@ def check_null_fks(df_order_detail, df_orders, df_pizza):
     return null_fks
 
 def check_cardinality(df_bronze_order_detail, df_silver):
-    print("  [검증 4-1] Cardinality (행 개수) 검증 시작")
+    logger.info("  [검증 4-1] Cardinality (행 개수) 검증 시작")
     count_bronze_order_detail = df_bronze_order_detail.count()
-    count_silver_distinct_order_detail = df_silver.select(countDistinct("order_detail_id")).collect()[0][0]
+    
+    count_silver_distinct_order_detail = df_silver.select(countDistinct(col("orderdetail.order_detail_id"))).collect()[0][0]
 
     results = {
         "bronze_order_detail_count": count_bronze_order_detail,
@@ -44,7 +49,7 @@ def check_cardinality(df_bronze_order_detail, df_silver):
     elif dropped_rows < 0:
          logger.warning(f"    [경고] Cardinality: Silver의 고유 order_detail 건수({count_silver_distinct_order_detail})가 Bronze({count_bronze_order_detail})보다 많습니다. 로직 검토 필요.")
     else:
-        logger.info(f"    [정보] Cardinality: 모든 order_detail 행이 'inner' 조인에 성공했습니다. ({count_bronze_order_detail}건)")
+         logger.info(f"    [정보] Cardinality: 모든 order_detail 행이 'inner' 조인에 성공했습니다. ({count_bronze_order_detail}건)")
     logger.info("  [검증 4-1] 완료")
     return results
 
@@ -52,28 +57,34 @@ def check_referential_integrity(df_silver):
     logger.info("  [검증 4-2] 참조 무결성 (Left Join Null) 검사 시작")
     missing_joins = {}
 
-    # member_id는 있으나, member 테이블에 없는 경우
-    missing_joins["missing_member"] = df_silver.filter(
-        col("orders.member_id").isNotNull() & col("member.member_nm").isNull()
-    ).count()
+    try:
+        # member_id는 있으나, member 테이블에 없는 경우
+        missing_joins["missing_member"] = df_silver.filter(
+            col("orders.member_id").isNotNull() & col("member.member_nm").isNull()
+        ).count()
 
-    # bran_id는 있으나, branch 테이블에 없는 경우
-    missing_joins["missing_branch"] = df_silver.filter(
-        col("orders.bran_id").isNotNull() & col("branch.bran_nm").isNull()
-    ).count()
+        # bran_id는 있으나, branch 테이블에 없는 경우
+        missing_joins["missing_branch"] = df_silver.filter(
+            col("orders.bran_id").isNotNull() & col("branch.bran_nm").isNull()
+        ).count()
 
-    # pizzatypetopping 테이블에는 topping_id가 있으나, topping 테이블에 없는 경우
-    missing_joins["missing_topping_master"] = df_silver.filter(
-        col("pizzatypetopping.pizza_topping_id").isNotNull() &
-        col("topping.pizza_topping_nm").isNull()
-    ).count()
+        # pizzatypetopping 테이블에는 topping_id가 있으나, topping 테이블에 없는 경우
+        missing_joins["missing_topping_master"] = df_silver.filter(
+            col("pizzatypetopping.pizza_topping_id").isNotNull() &
+            col("topping.pizza_topping_nm").isNull()
+        ).count()
 
-    # 토핑 정보가 아예 없는 피자
-    missing_joins["pizzas_with_no_toppings (distinct_type)"] = df_silver.filter(
-        col("pizzatype.pizza_type_id").isNotNull() &
-        col("pizzatypetopping.pizza_type_id").isNull()
-    ).select("pizzatype.pizza_type_id").distinct().count()
+        # 토핑 정보가 아예 없는 피자
+        missing_joins["pizzas_with_no_toppings (distinct_type)"] = df_silver.filter(
+            col("pizzatypes.pizza_type_id").isNotNull() &
+            col("pizzatypetopping.pizza_type_id").isNull()
+        ).select(col("pizzatypes.pizza_type_id")).distinct().count()
 
-    logger.info(f"    [정보] 'Left Join' 실패 (참조 데이터 누락) 건수: {missing_joins}")
-    logger.info("  [검증 4-2] 완료")
+        logger.info(f"    [정보] 'Left Join' 실패 (참조 데이터 누락) 건수: {missing_joins}")
+        logger.info("  [검증 4-2] 완료")
+        
+    except Exception as e:
+        logger.error(f"ERROR: [검증 4-2] 참조 무결성 검사 중 에러 발생: {e}", exc_info=True)
+        missing_joins["VALIDATION_ERROR"] = 1 
+        
     return missing_joins
