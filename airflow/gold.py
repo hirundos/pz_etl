@@ -47,9 +47,18 @@ def main():
     try:
         # ETL (Transformation) 단계
         logger.info("Gold 테이블 변환 시작...")
-        
+
         df_dim_pizza = df_silver.select("pizza_id", "pizza_type_id", "size", "price").distinct()
-        df_dim_member = df_silver.select("member_id", "member_nm").distinct()
+        
+        guest_member_df = spark.createDataFrame(
+            [(0, "비회원(Guest)")], 
+            ["member_id", "member_nm"]
+        )
+        df_dim_member = df_silver.select("member_id", "member_nm") \
+            .distinct() \
+            .union(guest_member_df) \
+            .distinct()
+        
         df_dim_ptype = df_silver.select("pizza_type_id", "pizza_nm", "pizza_categ").distinct()
         df_dim_date = df_silver.select(to_date("date").alias("date")) \
             .distinct() \
@@ -60,14 +69,25 @@ def main():
             .withColumn("weekday", date_format("date", "E")) \
             .withColumn("is_weekend", expr("CASE WHEN dayofweek(date) IN (1,7) THEN 1 ELSE 0 END"))
 
-        df_dim_branch = df_silver.select("bran_id", "bran_nm").distinct()
+        unknown_branch_df = spark.createDataFrame(
+            [(0, "알 수 없는 지점")],  # ID 0번으로 "알 수 없는 지점" 정의
+            ["bran_id", "bran_nm"]
+        )
+
+        df_dim_branch = df_silver.select("bran_id", "bran_nm") \
+            .distinct() \
+            .union(unknown_branch_df) \
+            .distinct()
+
         df_dim_topping = df_silver.select("pizza_topping_id", "pizza_topping_nm").distinct()
         df_bridge_topping = df_silver.select("pizza_type_id", "pizza_topping_id").distinct()
+        
         df_fact_order = df_silver.select(
             "order_detail_id","order_id","date","member_id","pizza_id","pizza_type_id","pizza_topping_id",
             "time","size","quantity","price","bran_id"
         ).withColumnRenamed("price","unit_price") \
-         .withColumn("total_price", expr("unit_price * quantity"))
+        .withColumn("total_price", expr("unit_price * quantity")) \
+        .fillna(0, subset=["member_id", "bran_id"]) 
 
         logger.info("Gold 테이블 변환 완료. 검증 시작...")
 

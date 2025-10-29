@@ -91,8 +91,9 @@ def validate_dataframes(dfs):
     _check_referential_integrity(df_fact_order, "pizza_type_id", df_dim_ptype, "pizza_type_id", "dim_pizza_type")
     _check_referential_integrity(df_fact_order, "date", df_dim_date, "date", "dim_date")
     _check_referential_integrity(df_fact_order, "pizza_topping_id", df_dim_topping, "pizza_topping_id", "dim_pizza_topping")
+    _check_referential_integrity(df_fact_order, "member_id", df_dim_member, "member_id", "dim_member")
+    _check_referential_integrity(df_fact_order, "bran_id", df_dim_branch, "bran_id", "dim_branch")
 
-    # 비즈니스 로직 검증
     # total_price 계산 검증
     bad_price_calc_count = df_fact_order.where(col("total_price") != (col("unit_price") * col("quantity"))).count()
     run_validation_check(
