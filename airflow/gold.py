@@ -22,7 +22,7 @@ def main():
     # SparkSession 설정
     spark = SparkSession.builder \
         .appName("Gold_ETL_With_Validation") \
-        .config("temporaryGcsBucket", "pz-buck-888")
+        .config("temporaryGcsBucket", "pz-buck-888") \
         .getOrCreate()
     
     logger.info("SparkSession 생성 완료.")
