@@ -51,7 +51,7 @@ def main():
         df_dim_pizza = df_silver.select("pizza_id", "pizza_type_id", "size", "price").distinct()
         
         guest_member_df = spark.createDataFrame(
-            [(0, "비회원(Guest)")], 
+            [("0", "비회원(Guest)")], 
             ["member_id", "member_nm"]
         )
         df_dim_member = df_silver.select("member_id", "member_nm") \
@@ -70,7 +70,7 @@ def main():
             .withColumn("is_weekend", expr("CASE WHEN dayofweek(date) IN (1,7) THEN 1 ELSE 0 END"))
 
         unknown_branch_df = spark.createDataFrame(
-            [(0, "알 수 없는 지점")],  # ID 0번으로 "알 수 없는 지점" 정의
+            [("0", "알 수 없는 지점")], 
             ["bran_id", "bran_nm"]
         )
 
@@ -87,7 +87,7 @@ def main():
             "time","size","quantity","price","bran_id"
         ).withColumnRenamed("price","unit_price") \
         .withColumn("total_price", expr("unit_price * quantity")) \
-        .fillna(0, subset=["member_id", "bran_id"]) 
+        .fillna("0", subset=["member_id", "bran_id"]) 
 
         logger.info("Gold 테이블 변환 완료. 검증 시작...")
 
