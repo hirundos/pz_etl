@@ -18,14 +18,10 @@ spark = SparkSession.builder \
 bronze_path = "gs://pz-buck-888/bronze/"
 silver_path = "gs://pz-buck-888/silver/"
 
-# [수정] 중복을 피하기 위해 조인 전에 삭제할 공통 컬럼 목록
 common_cols_to_drop = ["last_updated_timestamp", "etl_load_timestamp"]
 
 try:
-    # [수정] alias 제거. orderdetail을 기준으로 삼음.
     df_order_detail = spark.read.format("delta").load(f"{bronze_path}orderdetail")
-
-    # [수정] 조인할 테이블들은 공통 컬럼을 미리 drop() 합니다.
     df_orders = spark.read.format("delta").load(f"{bronze_path}orders").drop(*common_cols_to_drop)
     df_pizza = spark.read.format("delta").load(f"{bronze_path}pizza").drop(*common_cols_to_drop)
     df_pizza_type = spark.read.format("delta").load(f"{bronze_path}pizzatypes").drop(*common_cols_to_drop)

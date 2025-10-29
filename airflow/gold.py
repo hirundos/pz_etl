@@ -22,8 +22,7 @@ def main():
     # SparkSession 설정
     spark = SparkSession.builder \
         .appName("Gold_ETL_With_Validation") \
-        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
-        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+        .config("temporaryGcsBucket", "pz-buck-888")
         .getOrCreate()
     
     logger.info("SparkSession 생성 완료.")
